@@ -14,50 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
-      inspections: {
+      trainings: {
         Row: {
-          action_by: string
+          attendance_confirmed: boolean | null
+          certificate_no: string | null
+          company: string
           created_at: string
-          description: string
-          due_date: string | null
+          duration_hours: number | null
+          expiry_date: string | null
           id: string
-          inspection_date: string | null
-          inspection_no: string
-          items: string
-          location: string
+          instructor: string | null
+          location: string | null
+          position: string | null
           remarks: string | null
-          risk_level: Database["public"]["Enums"]["risk_level"]
-          status: Database["public"]["Enums"]["inspection_status"]
+          status: Database["public"]["Enums"]["training_status"]
+          trainee_name: string
+          training_date: string
+          training_type: Database["public"]["Enums"]["training_type"]
           updated_at: string
         }
         Insert: {
-          action_by: string
+          attendance_confirmed?: boolean | null
+          certificate_no?: string | null
+          company: string
           created_at?: string
-          description: string
-          due_date?: string | null
+          duration_hours?: number | null
+          expiry_date?: string | null
           id?: string
-          inspection_date?: string | null
-          inspection_no: string
-          items: string
-          location: string
+          instructor?: string | null
+          location?: string | null
+          position?: string | null
           remarks?: string | null
-          risk_level?: Database["public"]["Enums"]["risk_level"]
-          status?: Database["public"]["Enums"]["inspection_status"]
+          status?: Database["public"]["Enums"]["training_status"]
+          trainee_name: string
+          training_date: string
+          training_type?: Database["public"]["Enums"]["training_type"]
           updated_at?: string
         }
         Update: {
-          action_by?: string
+          attendance_confirmed?: boolean | null
+          certificate_no?: string | null
+          company?: string
           created_at?: string
-          description?: string
-          due_date?: string | null
+          duration_hours?: number | null
+          expiry_date?: string | null
           id?: string
-          inspection_date?: string | null
-          inspection_no?: string
-          items?: string
-          location?: string
+          instructor?: string | null
+          location?: string | null
+          position?: string | null
           remarks?: string | null
-          risk_level?: Database["public"]["Enums"]["risk_level"]
-          status?: Database["public"]["Enums"]["inspection_status"]
+          status?: Database["public"]["Enums"]["training_status"]
+          trainee_name?: string
+          training_date?: string
+          training_type?: Database["public"]["Enums"]["training_type"]
           updated_at?: string
         }
         Relationships: []
@@ -70,8 +79,23 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      inspection_status: "Open" | "Closed"
-      risk_level: "H" | "M" | "L"
+      training_status:
+        | "Completed"
+        | "Scheduled"
+        | "In Progress"
+        | "Cancelled"
+        | "Expired"
+      training_type:
+        | "HSE Induction"
+        | "Fire Safety"
+        | "First Aid"
+        | "Working at Height"
+        | "Confined Space"
+        | "Manual Handling"
+        | "PPE Training"
+        | "Emergency Response"
+        | "Environmental Awareness"
+        | "Other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -199,8 +223,25 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      inspection_status: ["Open", "Closed"],
-      risk_level: ["H", "M", "L"],
+      training_status: [
+        "Completed",
+        "Scheduled",
+        "In Progress",
+        "Cancelled",
+        "Expired",
+      ],
+      training_type: [
+        "HSE Induction",
+        "Fire Safety",
+        "First Aid",
+        "Working at Height",
+        "Confined Space",
+        "Manual Handling",
+        "PPE Training",
+        "Emergency Response",
+        "Environmental Awareness",
+        "Other",
+      ],
     },
   },
 } as const
