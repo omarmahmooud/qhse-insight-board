@@ -18,11 +18,14 @@ import { EditTrainingDialog } from "@/components/dashboard/EditTrainingDialog";
 import { TrainingExcelImportDialog } from "@/components/dashboard/TrainingExcelImportDialog";
 import { TraineeByTypeChart } from "@/components/dashboard/TraineeByTypeChart";
 import { TraineeByCompanyChart } from "@/components/dashboard/TraineeByCompanyChart";
+import { EmployeeTrainingStatus } from "@/components/dashboard/EmployeeTrainingStatus";
+import { VisitorTrainingSummary } from "@/components/dashboard/VisitorTrainingSummary";
 import { Button } from "@/components/ui/button";
 import { useTrainings } from "@/hooks/useTrainings";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import type { Database as DB } from "@/integrations/supabase/types";
+import { isCloudEnergiEmployee } from "@/data/trainingRequirements";
 
 type Training = DB['public']['Tables']['trainings']['Row'];
 
@@ -44,6 +47,12 @@ const Index = () => {
   };
 
   const uniqueCompanies = Object.keys(summary.byCompany).length;
+  
+  // Calculate CEG employees vs visitors
+  const cegEmployees = trainings.filter(t => isCloudEnergiEmployee(t.company));
+  const visitors = trainings.filter(t => !isCloudEnergiEmployee(t.company));
+  const uniqueCegEmployees = new Set(cegEmployees.map(t => t.trainee_name.toLowerCase().trim())).size;
+  const uniqueVisitors = new Set(visitors.map(t => t.trainee_name.toLowerCase().trim())).size;
 
   return (
     <div className="min-h-screen bg-background">
@@ -152,26 +161,32 @@ const Index = () => {
             variant="default"
           />
           <StatCard
+            title="CEG Employees"
+            value={uniqueCegEmployees}
+            subtitle="Cloud Energi staff"
+            icon={Building2}
+            variant="success"
+          />
+          <StatCard
+            title="Visitors"
+            value={uniqueVisitors}
+            subtitle="External trainees"
+            icon={Users}
+            variant="warning"
+          />
+          <StatCard
             title="Completed"
             value={summary.completed}
             subtitle="Successfully completed"
             icon={CheckCircle2}
-            variant="success"
-          />
-          <StatCard
-            title="Scheduled"
-            value={summary.scheduled}
-            subtitle="Upcoming sessions"
-            icon={Clock}
-            variant="warning"
-          />
-          <StatCard
-            title="Companies"
-            value={uniqueCompanies}
-            subtitle="Organizations trained"
-            icon={Building2}
             variant="default"
           />
+        </div>
+
+        {/* Employee & Visitor Training Status */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <EmployeeTrainingStatus trainings={trainings} />
+          <VisitorTrainingSummary trainings={trainings} />
         </div>
 
         {/* Charts Row */}
