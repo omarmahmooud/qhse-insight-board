@@ -73,7 +73,7 @@ function normalizeKey(key: string): string {
   return key.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-// Map Excel row to training record
+// Map Excel row to training record based on the exact format from screenshot
 function mapRowToTraining(row: Record<string, any>): TrainingInsert | null {
   // Create a normalized lookup
   const normalized: Record<string, any> = {};
@@ -81,8 +81,11 @@ function mapRowToTraining(row: Record<string, any>): TrainingInsert | null {
     normalized[normalizeKey(key)] = value;
   }
   
-  // Find trainee name - check multiple column variations
-  const traineeColumns = ['inductee', 'traineename', 'trainee', 'name', 'employee', 'employeename', 'fullname'];
+  // Debug log to see what we're working with
+  console.log('Normalized row keys:', Object.keys(normalized));
+  
+  // Find trainee name - "Inductee" column
+  const traineeColumns = ['inductee', 'traineename', 'trainee', 'name', 'employee', 'employeename', 'fullname', 'participantname'];
   let traineeName = '';
   for (const col of traineeColumns) {
     if (normalized[col]) {
@@ -92,7 +95,7 @@ function mapRowToTraining(row: Record<string, any>): TrainingInsert | null {
   }
   
   // Find company
-  const companyColumns = ['company', 'companyname', 'organization', 'employer'];
+  const companyColumns = ['company', 'companyname', 'organization', 'employer', 'client'];
   let company = '';
   for (const col of companyColumns) {
     if (normalized[col]) {
@@ -103,11 +106,12 @@ function mapRowToTraining(row: Record<string, any>): TrainingInsert | null {
   
   // Skip rows without required data
   if (!traineeName || !company) {
+    console.log('Skipping row - missing trainee or company:', { traineeName, company });
     return null;
   }
   
-  // Find date
-  const dateColumns = ['date', 'trainingdate', 'dateoftraining', 'conducteddate'];
+  // Find date - "Date" column
+  const dateColumns = ['date', 'trainingdate', 'dateoftraining', 'conducteddate', 'inductiondate'];
   let trainingDate = new Date().toISOString().split('T')[0];
   for (const col of dateColumns) {
     if (normalized[col]) {
@@ -119,7 +123,7 @@ function mapRowToTraining(row: Record<string, any>): TrainingInsert | null {
     }
   }
   
-  // Find position
+  // Find position of trainee - "Position" column
   const positionColumns = ['position', 'jobtitle', 'title', 'role', 'designation'];
   let position = '';
   for (const col of positionColumns) {
@@ -129,8 +133,8 @@ function mapRowToTraining(row: Record<string, any>): TrainingInsert | null {
     }
   }
   
-  // Find instructor - check "Inducted by" column specifically
-  const instructorColumns = ['inductedby', 'instructor', 'trainer', 'conductedby', 'facilitator'];
+  // Find instructor - "Inducted by" column
+  const instructorColumns = ['inductedby', 'instructor', 'trainer', 'conductedby', 'facilitator', 'inductorname'];
   let instructor = '';
   for (const col of instructorColumns) {
     if (normalized[col]) {
@@ -139,7 +143,7 @@ function mapRowToTraining(row: Record<string, any>): TrainingInsert | null {
     }
   }
   
-  // Find training type and map to enum
+  // Find training type - "Training Type" column and map to enum
   const typeColumns = ['trainingtype', 'type', 'course', 'coursename', 'training'];
   let trainingTypeRaw = '';
   for (const col of typeColumns) {
@@ -163,14 +167,36 @@ function mapRowToTraining(row: Record<string, any>): TrainingInsert | null {
     trainingType = 'Manual Handling';
   } else if (trainingTypeRaw.includes('ppe')) {
     trainingType = 'PPE Training';
-  } else if (trainingTypeRaw.includes('emergency')) {
+  } else if (trainingTypeRaw.includes('emergency') || trainingTypeRaw.includes('evac')) {
     trainingType = 'Emergency Response';
   } else if (trainingTypeRaw.includes('environment')) {
     trainingType = 'Environmental Awareness';
   } else if (trainingTypeRaw.includes('induction') || trainingTypeRaw.includes('safety')) {
     trainingType = 'HSE Induction';
+  } else if (trainingTypeRaw.includes('hot work') || trainingTypeRaw.includes('powered')) {
+    trainingType = 'Other';
   } else if (trainingTypeRaw) {
     trainingType = 'Other';
+  }
+  
+  // Find purpose of visit - "Purpose of visit" column - use as location or remarks
+  const purposeColumns = ['purposeofvisit', 'purpose', 'reason', 'visitpurpose'];
+  let purpose = '';
+  for (const col of purposeColumns) {
+    if (normalized[col]) {
+      purpose = String(normalized[col]).trim();
+      break;
+    }
+  }
+  
+  // Find host name - "Host Name" column
+  const hostColumns = ['hostname', 'host', 'hostperson', 'contactperson'];
+  let hostName = '';
+  for (const col of hostColumns) {
+    if (normalized[col]) {
+      hostName = String(normalized[col]).trim();
+      break;
+    }
   }
   
   // Find location
@@ -183,12 +209,24 @@ function mapRowToTraining(row: Record<string, any>): TrainingInsert | null {
     }
   }
   
-  // Find remarks/purpose
-  const remarksColumns = ['remarks', 'notes', 'comment', 'purposeofvisit', 'purpose'];
+  // Combine purpose and host for remarks if available
   let remarks = '';
+  if (purpose && hostName) {
+    remarks = `${purpose} - Host: ${hostName}`;
+  } else if (purpose) {
+    remarks = purpose;
+  } else if (hostName) {
+    remarks = `Host: ${hostName}`;
+  }
+  
+  // Check for other remarks columns
+  const remarksColumns = ['remarks', 'notes', 'comment', 'comments'];
   for (const col of remarksColumns) {
     if (normalized[col]) {
-      remarks = String(normalized[col]).trim();
+      const existingRemarks = String(normalized[col]).trim();
+      if (existingRemarks) {
+        remarks = remarks ? `${remarks} | ${existingRemarks}` : existingRemarks;
+      }
       break;
     }
   }
