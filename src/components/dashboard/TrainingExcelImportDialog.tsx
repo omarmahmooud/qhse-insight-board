@@ -4,236 +4,144 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import type { Database } from '@/integrations/supabase/types';
-
-type TrainingInsert = Database['public']['Tables']['trainings']['Insert'];
 
 interface TrainingExcelImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onImport: (trainings: TrainingInsert[]) => Promise<boolean>;
+  onImport: (trainings: any[]) => Promise<boolean>;
 }
 
 // Helper to parse various date formats
 function parseDate(value: any): string | null {
   if (!value) return null;
   
-  // Excel serial date number
   if (typeof value === 'number') {
     const date = new Date((value - 25569) * 86400 * 1000);
     return date.toISOString().split('T')[0];
   }
   
-  // String date
   if (typeof value === 'string') {
     const str = value.trim();
-    
-    // Try "2/Jan/25" or "02/Jan/2025" format
     const match = str.match(/^(\d{1,2})[\/\-]([A-Za-z]+)[\/\-](\d{2,4})$/);
     if (match) {
       const day = parseInt(match[1]);
       const monthStr = match[2].toLowerCase();
       let year = parseInt(match[3]);
       if (year < 100) year += 2000;
-      
       const months: Record<string, number> = {
-        jan: 0, january: 0,
-        feb: 1, february: 1,
-        mar: 2, march: 2,
-        apr: 3, april: 3,
-        may: 4,
-        jun: 5, june: 5,
-        jul: 6, july: 6,
-        aug: 7, august: 7,
-        sep: 8, september: 8,
-        oct: 9, october: 9,
-        nov: 10, november: 10,
-        dec: 11, december: 11,
+        jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+        apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+        aug: 7, august: 7, sep: 8, september: 8, oct: 9, october: 9,
+        nov: 10, november: 10, dec: 11, december: 11,
       };
-      
       const month = months[monthStr];
       if (month !== undefined) {
         const date = new Date(year, month, day);
         return date.toISOString().split('T')[0];
       }
     }
-    
-    // Try standard date formats
     const parsed = new Date(str);
-    if (!isNaN(parsed.getTime())) {
-      return parsed.toISOString().split('T')[0];
-    }
+    if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
   }
-  
   return null;
 }
 
-// Normalize column names for flexible matching
 function normalizeKey(key: string): string {
   return key.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-// Map Excel row to training record based on the exact format from screenshot
-function mapRowToTraining(row: Record<string, any>): TrainingInsert | null {
-  // Create a normalized lookup
+function mapRowToTraining(row: Record<string, any>): any | null {
   const normalized: Record<string, any> = {};
   for (const [key, value] of Object.entries(row)) {
     normalized[normalizeKey(key)] = value;
   }
-  
-  // Debug log to see what we're working with
-  console.log('Normalized row keys:', Object.keys(normalized));
-  
-  // Find trainee name - "Inductee" column
+
+  // Find trainee name
   const traineeColumns = ['inductee', 'traineename', 'trainee', 'name', 'employee', 'employeename', 'fullname', 'participantname'];
   let traineeName = '';
   for (const col of traineeColumns) {
-    if (normalized[col]) {
-      traineeName = String(normalized[col]).trim();
-      break;
-    }
+    if (normalized[col]) { traineeName = String(normalized[col]).trim(); break; }
   }
-  
+
   // Find company
   const companyColumns = ['company', 'companyname', 'organization', 'employer', 'client'];
   let company = '';
   for (const col of companyColumns) {
-    if (normalized[col]) {
-      company = String(normalized[col]).trim();
-      break;
-    }
+    if (normalized[col]) { company = String(normalized[col]).trim(); break; }
   }
-  
-  // Skip rows without required data
-  if (!traineeName || !company) {
-    console.log('Skipping row - missing trainee or company:', { traineeName, company });
-    return null;
-  }
-  
-  // Find date - "Date" column
+
+  if (!traineeName || !company) return null;
+
+  // Find date
   const dateColumns = ['date', 'trainingdate', 'dateoftraining', 'conducteddate', 'inductiondate'];
   let trainingDate = new Date().toISOString().split('T')[0];
   for (const col of dateColumns) {
     if (normalized[col]) {
       const parsed = parseDate(normalized[col]);
-      if (parsed) {
-        trainingDate = parsed;
-        break;
-      }
+      if (parsed) { trainingDate = parsed; break; }
     }
   }
-  
-  // Find position of trainee - "Position" column
+
+  // Find position
   const positionColumns = ['position', 'jobtitle', 'title', 'role', 'designation'];
   let position = '';
   for (const col of positionColumns) {
-    if (normalized[col]) {
-      position = String(normalized[col]).trim();
-      break;
-    }
+    if (normalized[col]) { position = String(normalized[col]).trim(); break; }
   }
-  
-  // Find instructor - "Inducted by" column
-  const instructorColumns = ['inductedby', 'instructor', 'trainer', 'conductedby', 'facilitator', 'inductorname'];
+
+  // Find instructor
+  const instructorColumns = ['inductedby', 'instructor', 'trainer', 'conductedby', 'facilitator'];
   let instructor = '';
   for (const col of instructorColumns) {
-    if (normalized[col]) {
-      instructor = String(normalized[col]).trim();
-      break;
-    }
+    if (normalized[col]) { instructor = String(normalized[col]).trim(); break; }
   }
-  
-  // Find training type - "Training Type" column and map to enum
-  const typeColumns = ['trainingtype', 'type', 'course', 'coursename', 'training'];
-  let trainingTypeRaw = '';
+
+  // Find training type - store raw value as text (no enum mapping)
+  const typeColumns = ['trainingtype', 'type', 'course', 'coursename', 'training', 'trainingtopic'];
+  let trainingType = 'QHSE Induction & General Disciplinary Actions';
   for (const col of typeColumns) {
-    if (normalized[col]) {
-      trainingTypeRaw = String(normalized[col]).trim().toLowerCase();
-      break;
-    }
+    if (normalized[col]) { trainingType = String(normalized[col]).trim(); break; }
   }
-  
-  // Map to valid enum value
-  let trainingType: Database['public']['Enums']['training_type'] = 'HSE Induction';
-  if (trainingTypeRaw.includes('fire')) {
-    trainingType = 'Fire Safety';
-  } else if (trainingTypeRaw.includes('first aid')) {
-    trainingType = 'First Aid';
-  } else if (trainingTypeRaw.includes('height')) {
-    trainingType = 'Working at Height';
-  } else if (trainingTypeRaw.includes('confined')) {
-    trainingType = 'Confined Space';
-  } else if (trainingTypeRaw.includes('manual') || trainingTypeRaw.includes('handling')) {
-    trainingType = 'Manual Handling';
-  } else if (trainingTypeRaw.includes('ppe')) {
-    trainingType = 'PPE Training';
-  } else if (trainingTypeRaw.includes('emergency') || trainingTypeRaw.includes('evac')) {
-    trainingType = 'Emergency Response';
-  } else if (trainingTypeRaw.includes('environment')) {
-    trainingType = 'Environmental Awareness';
-  } else if (trainingTypeRaw.includes('induction') || trainingTypeRaw.includes('safety')) {
-    trainingType = 'HSE Induction';
-  } else if (trainingTypeRaw.includes('hot work') || trainingTypeRaw.includes('powered')) {
-    trainingType = 'Other';
-  } else if (trainingTypeRaw) {
-    trainingType = 'Other';
-  }
-  
-  // Find purpose of visit - "Purpose of visit" column - use as location or remarks
+
+  // Find purpose of visit
   const purposeColumns = ['purposeofvisit', 'purpose', 'reason', 'visitpurpose'];
   let purpose = '';
   for (const col of purposeColumns) {
-    if (normalized[col]) {
-      purpose = String(normalized[col]).trim();
-      break;
-    }
+    if (normalized[col]) { purpose = String(normalized[col]).trim(); break; }
   }
-  
-  // Find host name - "Host Name" column
+
+  // Find host name
   const hostColumns = ['hostname', 'host', 'hostperson', 'contactperson'];
   let hostName = '';
   for (const col of hostColumns) {
-    if (normalized[col]) {
-      hostName = String(normalized[col]).trim();
-      break;
-    }
+    if (normalized[col]) { hostName = String(normalized[col]).trim(); break; }
   }
-  
+
   // Find location
   const locationColumns = ['location', 'venue', 'place', 'site'];
   let location = '';
   for (const col of locationColumns) {
-    if (normalized[col]) {
-      location = String(normalized[col]).trim();
-      break;
-    }
+    if (normalized[col]) { location = String(normalized[col]).trim(); break; }
   }
-  
-  // Combine purpose and host for remarks if available
+
+  // Build remarks
   let remarks = '';
-  if (purpose && hostName) {
-    remarks = `${purpose} - Host: ${hostName}`;
-  } else if (purpose) {
-    remarks = purpose;
-  } else if (hostName) {
-    remarks = `Host: ${hostName}`;
-  }
-  
-  // Check for other remarks columns
+  if (purpose && hostName) remarks = `${purpose} - Host: ${hostName}`;
+  else if (purpose) remarks = purpose;
+  else if (hostName) remarks = `Host: ${hostName}`;
+
   const remarksColumns = ['remarks', 'notes', 'comment', 'comments'];
   for (const col of remarksColumns) {
     if (normalized[col]) {
-      const existingRemarks = String(normalized[col]).trim();
-      if (existingRemarks) {
-        remarks = remarks ? `${remarks} | ${existingRemarks}` : existingRemarks;
-      }
+      const existing = String(normalized[col]).trim();
+      if (existing) remarks = remarks ? `${remarks} | ${existing}` : existing;
       break;
     }
   }
-  
+
   return {
     trainee_name: traineeName,
-    company: company,
+    company,
     position: position || null,
     training_type: trainingType,
     training_date: trainingDate,
@@ -247,7 +155,7 @@ function mapRowToTraining(row: Record<string, any>): TrainingInsert | null {
 
 export function TrainingExcelImportDialog({ open, onOpenChange, onImport }: TrainingExcelImportDialogProps) {
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<TrainingInsert[]>([]);
+  const [preview, setPreview] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detectedColumns, setDetectedColumns] = useState<string[]>([]);
@@ -269,23 +177,15 @@ export function TrainingExcelImportDialog({ open, onOpenChange, onImport }: Trai
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
 
-        console.log('Parsed Excel data:', jsonData.slice(0, 3));
-        
         if (jsonData.length > 0) {
-          const columns = Object.keys(jsonData[0]);
-          console.log('Detected columns:', columns);
-          setDetectedColumns(columns);
+          setDetectedColumns(Object.keys(jsonData[0]));
         }
 
-        const trainings: TrainingInsert[] = [];
+        const trainings: any[] = [];
         for (const row of jsonData) {
           const mapped = mapRowToTraining(row);
-          if (mapped) {
-            trainings.push(mapped);
-          }
+          if (mapped) trainings.push(mapped);
         }
-
-        console.log('Mapped trainings:', trainings.slice(0, 3));
 
         if (trainings.length === 0) {
           setError('No valid training records found. Make sure your Excel has columns like "Inductee", "Company", "Date".');
@@ -304,11 +204,9 @@ export function TrainingExcelImportDialog({ open, onOpenChange, onImport }: Trai
 
   const handleImport = async () => {
     if (preview.length === 0) return;
-
     setLoading(true);
     const success = await onImport(preview);
     setLoading(false);
-
     if (success) {
       onOpenChange(false);
       setFile(null);
@@ -339,15 +237,8 @@ export function TrainingExcelImportDialog({ open, onOpenChange, onImport }: Trai
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* File upload */}
           <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-            <Input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleFileChange}
-              className="hidden"
-              id="excel-upload"
-            />
+            <Input type="file" accept=".xlsx,.xls" onChange={handleFileChange} className="hidden" id="excel-upload" />
             <label htmlFor="excel-upload" className="cursor-pointer">
               <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
@@ -356,7 +247,6 @@ export function TrainingExcelImportDialog({ open, onOpenChange, onImport }: Trai
             </label>
           </div>
 
-          {/* Detected columns */}
           {detectedColumns.length > 0 && (
             <div className="p-3 bg-muted/50 rounded-lg">
               <p className="text-sm font-medium mb-1">Detected columns:</p>
@@ -364,7 +254,6 @@ export function TrainingExcelImportDialog({ open, onOpenChange, onImport }: Trai
             </div>
           )}
 
-          {/* Error */}
           {error && (
             <div className="flex items-center gap-2 p-3 bg-destructive/10 text-destructive rounded-lg">
               <AlertCircle className="w-4 h-4" />
@@ -372,14 +261,12 @@ export function TrainingExcelImportDialog({ open, onOpenChange, onImport }: Trai
             </div>
           )}
 
-          {/* Preview */}
           {preview.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-success">
                 <CheckCircle className="w-4 h-4" />
                 <p className="text-sm font-medium">{preview.length} training records ready to import</p>
               </div>
-              
               <div className="max-h-48 overflow-y-auto border rounded-lg">
                 <table className="w-full text-sm">
                   <thead className="bg-muted sticky top-0">
@@ -412,11 +299,8 @@ export function TrainingExcelImportDialog({ open, onOpenChange, onImport }: Trai
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={handleClose}>Cancel</Button>
             <Button onClick={handleImport} disabled={loading || preview.length === 0}>
               {loading ? 'Importing...' : `Import ${preview.length} Records`}
             </Button>

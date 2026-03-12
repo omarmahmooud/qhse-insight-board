@@ -3,10 +3,10 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, XCircle, AlertTriangle, User, Building2 } from 'lucide-react';
 import { 
-  isCloudEnergiEmployee, 
   detectRoleFromPosition, 
   getRequiredTrainings,
-  EmployeeRole 
+  isEmployee,
+  type EmployeeRole,
 } from '@/data/trainingRequirements';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -28,55 +28,63 @@ interface EmployeeStats {
 }
 
 export function EmployeeTrainingStatus({ trainings }: EmployeeTrainingStatusProps) {
-  // Filter only Cloud Energi employees
-  const cegTrainings = trainings.filter(t => isCloudEnergiEmployee(t.company));
-  
-  // Group by employee name and calculate training status
+  // Group trainings by person to determine employee vs outsider
+  const personTrainings = new Map<string, Training[]>();
+  trainings.forEach(t => {
+    const key = t.trainee_name.toLowerCase().trim();
+    if (!personTrainings.has(key)) personTrainings.set(key, []);
+    personTrainings.get(key)!.push(t);
+  });
+
+  // Filter employees: people who have internal training types
+  const employeeKeys = new Set<string>();
+  personTrainings.forEach((pts, key) => {
+    const types = pts.map(t => t.training_type);
+    if (isEmployee(types)) {
+      employeeKeys.add(key);
+    }
+  });
+
+  // Build employee stats
   const employeeMap = new Map<string, EmployeeStats>();
-  
-  cegTrainings.forEach(training => {
-    const key = training.trainee_name.toLowerCase().trim();
-    
-    if (!employeeMap.has(key)) {
-      const role = detectRoleFromPosition(training.position);
-      const required = role ? getRequiredTrainings(role).map(t => t.name.toLowerCase()) : [];
-      
-      employeeMap.set(key, {
-        name: training.trainee_name,
-        position: training.position,
-        role,
-        company: training.company,
-        completedTrainings: [],
-        requiredTrainings: required,
-        missingTrainings: [],
-        completionPercentage: 0,
-      });
-    }
-    
-    const emp = employeeMap.get(key)!;
-    if (training.status === 'Completed') {
-      // Use flexible matching for training names
-      const trainingName = training.training_type.toLowerCase();
-      if (!emp.completedTrainings.includes(trainingName)) {
-        emp.completedTrainings.push(trainingName);
+
+  employeeKeys.forEach(key => {
+    const pts = personTrainings.get(key)!;
+    const first = pts[0];
+    const role = detectRoleFromPosition(first.position);
+    const required = role ? getRequiredTrainings(role) : [];
+
+    const completedTrainings: string[] = [];
+    pts.forEach(t => {
+      if (t.status === 'Completed' && !completedTrainings.includes(t.training_type)) {
+        completedTrainings.push(t.training_type);
       }
-    }
+    });
+
+    const missingTrainings = required.filter(req => 
+      !completedTrainings.some(comp => {
+        const compLower = comp.toLowerCase();
+        const reqLower = req.toLowerCase();
+        return compLower.includes(reqLower.substring(0, 15)) || reqLower.includes(compLower.substring(0, 15));
+      })
+    );
+
+    const completionPercentage = required.length > 0
+      ? Math.round(((required.length - missingTrainings.length) / required.length) * 100)
+      : 0;
+
+    employeeMap.set(key, {
+      name: first.trainee_name,
+      position: first.position,
+      role,
+      company: first.company,
+      completedTrainings,
+      requiredTrainings: required,
+      missingTrainings,
+      completionPercentage,
+    });
   });
-  
-  // Calculate missing trainings and completion percentage
-  employeeMap.forEach((emp, key) => {
-    if (emp.requiredTrainings.length > 0) {
-      emp.missingTrainings = emp.requiredTrainings.filter(req => 
-        !emp.completedTrainings.some(comp => 
-          comp.includes(req.split(' ')[0]) || req.includes(comp.split(' ')[0])
-        )
-      );
-      const completed = emp.requiredTrainings.length - emp.missingTrainings.length;
-      emp.completionPercentage = Math.round((completed / emp.requiredTrainings.length) * 100);
-    }
-    employeeMap.set(key, emp);
-  });
-  
+
   const employees = Array.from(employeeMap.values()).sort((a, b) => 
     a.completionPercentage - b.completionPercentage
   );
@@ -87,24 +95,18 @@ export function EmployeeTrainingStatus({ trainings }: EmployeeTrainingStatusProp
     return 'text-destructive';
   };
 
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return 'bg-success';
-    if (percentage >= 75) return 'bg-warning';
-    return 'bg-destructive';
-  };
-
   if (employees.length === 0) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="w-5 h-5" />
-            Cloud Energi Employee Training Status
+            Employee Training Status
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground text-center py-4">
-            No Cloud Energi employees found. Import training records to see status.
+            No employees found. Import training records to see status.
           </p>
         </CardContent>
       </Card>
@@ -116,10 +118,10 @@ export function EmployeeTrainingStatus({ trainings }: EmployeeTrainingStatusProp
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Building2 className="w-5 h-5 text-primary" />
-          Cloud Energi Employee Training Status
+          Employee Training Status
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          {employees.length} employees • Showing training completion status
+          {employees.length} employees • Based on training type classification
         </p>
       </CardHeader>
       <CardContent>
@@ -157,10 +159,7 @@ export function EmployeeTrainingStatus({ trainings }: EmployeeTrainingStatusProp
               
               {emp.requiredTrainings.length > 0 && (
                 <>
-                  <Progress 
-                    value={emp.completionPercentage} 
-                    className="h-2 mt-3" 
-                  />
+                  <Progress value={emp.completionPercentage} className="h-2 mt-3" />
                   
                   {emp.missingTrainings.length > 0 && (
                     <div className="mt-3">

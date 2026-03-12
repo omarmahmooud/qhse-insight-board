@@ -30,7 +30,7 @@ export type Database = {
           status: Database["public"]["Enums"]["training_status"]
           trainee_name: string
           training_date: string
-          training_type: Database["public"]["Enums"]["training_type"]
+          training_type: string
           updated_at: string
         }
         Insert: {
@@ -48,7 +48,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["training_status"]
           trainee_name: string
           training_date: string
-          training_type?: Database["public"]["Enums"]["training_type"]
+          training_type?: string
           updated_at?: string
         }
         Update: {
@@ -66,7 +66,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["training_status"]
           trainee_name?: string
           training_date?: string
-          training_type?: Database["public"]["Enums"]["training_type"]
+          training_type?: string
           updated_at?: string
         }
         Relationships: []
@@ -85,17 +85,6 @@ export type Database = {
         | "In Progress"
         | "Cancelled"
         | "Expired"
-      training_type:
-        | "HSE Induction"
-        | "Fire Safety"
-        | "First Aid"
-        | "Working at Height"
-        | "Confined Space"
-        | "Manual Handling"
-        | "PPE Training"
-        | "Emergency Response"
-        | "Environmental Awareness"
-        | "Other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -229,18 +218,6 @@ export const Constants = {
         "In Progress",
         "Cancelled",
         "Expired",
-      ],
-      training_type: [
-        "HSE Induction",
-        "Fire Safety",
-        "First Aid",
-        "Working at Height",
-        "Confined Space",
-        "Manual Handling",
-        "PPE Training",
-        "Emergency Response",
-        "Environmental Awareness",
-        "Other",
       ],
     },
   },
