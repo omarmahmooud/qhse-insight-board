@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { 
   GraduationCap,
   CheckCircle2,
-  Clock,
   Plus,
   LogIn,
   LogOut,
@@ -24,8 +23,8 @@ import { Button } from "@/components/ui/button";
 import { useTrainings } from "@/hooks/useTrainings";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
+import { isEmployee } from "@/data/trainingRequirements";
 import type { Database as DB } from "@/integrations/supabase/types";
-import { isCloudEnergiEmployee } from "@/data/trainingRequirements";
 
 type Training = DB['public']['Tables']['trainings']['Row'];
 
@@ -46,13 +45,20 @@ const Index = () => {
     await signOut();
   };
 
-  const uniqueCompanies = Object.keys(summary.byCompany).length;
-  
-  // Calculate CEG employees vs visitors
-  const cegEmployees = trainings.filter(t => isCloudEnergiEmployee(t.company));
-  const visitors = trainings.filter(t => !isCloudEnergiEmployee(t.company));
-  const uniqueCegEmployees = new Set(cegEmployees.map(t => t.trainee_name.toLowerCase().trim())).size;
-  const uniqueVisitors = new Set(visitors.map(t => t.trainee_name.toLowerCase().trim())).size;
+  // Classify by training type, not company
+  const personTrainings = new Map<string, string[]>();
+  trainings.forEach(t => {
+    const key = t.trainee_name.toLowerCase().trim();
+    if (!personTrainings.has(key)) personTrainings.set(key, []);
+    personTrainings.get(key)!.push(t.training_type);
+  });
+
+  let employeeCount = 0;
+  let outsiderCount = 0;
+  personTrainings.forEach((types) => {
+    if (isEmployee(types)) employeeCount++;
+    else outsiderCount++;
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -88,32 +94,20 @@ const Index = () => {
               </div>
               
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                {/* Auth Section */}
                 {isAuthenticated ? (
                   <div className="flex items-center gap-2">
                     <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border/50">
                       <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                      <span className="text-sm text-muted-foreground">
-                        {user?.email}
-                      </span>
+                      <span className="text-sm text-muted-foreground">{user?.email}</span>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleSignOut}
-                      className="shadow-sm hover:shadow-md transition-shadow"
-                    >
+                    <Button variant="outline" size="sm" onClick={handleSignOut} className="shadow-sm hover:shadow-md transition-shadow">
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign Out
                     </Button>
                   </div>
                 ) : (
                   <Link to="/auth">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="shadow-sm hover:shadow-md transition-shadow"
-                    >
+                    <Button variant="outline" size="sm" className="shadow-sm hover:shadow-md transition-shadow">
                       <LogIn className="w-4 h-4 mr-2" />
                       Sign In
                     </Button>
@@ -123,14 +117,11 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Database Connected Banner */}
           <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Database className="w-5 h-5 text-primary" />
               <div>
-                <p className="text-sm font-medium text-foreground">
-                  Connected to Lovable Cloud
-                </p>
+                <p className="text-sm font-medium text-foreground">Connected to Lovable Cloud</p>
                 <p className="text-xs text-muted-foreground">
                   {trainings.length} training records synced • Real-time updates enabled
                 </p>
@@ -153,34 +144,10 @@ const Index = () => {
 
         {/* Main Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            title="Total Trainings"
-            value={summary.total}
-            subtitle="Training records"
-            icon={GraduationCap}
-            variant="default"
-          />
-          <StatCard
-            title="CEG Employees"
-            value={uniqueCegEmployees}
-            subtitle="Cloud Energi staff"
-            icon={Building2}
-            variant="success"
-          />
-          <StatCard
-            title="Visitors"
-            value={uniqueVisitors}
-            subtitle="External trainees"
-            icon={Users}
-            variant="warning"
-          />
-          <StatCard
-            title="Completed"
-            value={summary.completed}
-            subtitle="Successfully completed"
-            icon={CheckCircle2}
-            variant="default"
-          />
+          <StatCard title="Total Trainings" value={summary.total} subtitle="Training records" icon={GraduationCap} variant="default" />
+          <StatCard title="Employees" value={employeeCount} subtitle="Internal staff (by training type)" icon={Building2} variant="success" />
+          <StatCard title="Outsiders" value={outsiderCount} subtitle="Contractors, Visitors, etc." icon={Users} variant="warning" />
+          <StatCard title="Completed" value={summary.completed} subtitle="Successfully completed" icon={CheckCircle2} variant="default" />
         </div>
 
         {/* Employee & Visitor Training Status */}
@@ -197,40 +164,17 @@ const Index = () => {
 
         {/* Training Table */}
         <div className="mb-6">
-          <TrainingTable 
-            trainings={trainings}
-            loading={loading}
-            onEdit={handleEdit}
-            onDelete={deleteTraining}
-            isAuthenticated={isAuthenticated}
-          />
+          <TrainingTable trainings={trainings} loading={loading} onEdit={handleEdit} onDelete={deleteTraining} isAuthenticated={isAuthenticated} />
         </div>
 
-        {/* Footer */}
         <footer className="pt-6 border-t border-border/50 text-center">
-          <p className="text-sm text-muted-foreground">
-            CEG QHSE Training Dashboard • Data from Lovable Cloud Database
-          </p>
+          <p className="text-sm text-muted-foreground">CEG QHSE Training Dashboard • Data from Lovable Cloud Database</p>
         </footer>
       </main>
 
-      {/* Dialogs */}
-      <AddTrainingDialog 
-        open={addDialogOpen} 
-        onOpenChange={setAddDialogOpen} 
-        onAdd={addTraining}
-      />
-      <EditTrainingDialog
-        training={editingTraining}
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        onUpdate={updateTraining}
-      />
-      <TrainingExcelImportDialog
-        open={excelImportOpen}
-        onOpenChange={setExcelImportOpen}
-        onImport={addTrainings}
-      />
+      <AddTrainingDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} onAdd={addTraining} />
+      <EditTrainingDialog training={editingTraining} open={editDialogOpen} onOpenChange={setEditDialogOpen} onUpdate={updateTraining} />
+      <TrainingExcelImportDialog open={excelImportOpen} onOpenChange={setExcelImportOpen} onImport={addTrainings} />
     </div>
   );
 };

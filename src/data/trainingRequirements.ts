@@ -1,104 +1,196 @@
-// Training requirements based on CEG Training Calendar
-// Defines which trainings are required for each role
+// Training requirements based on CEG QHSE Internal Training Matrix 2026
 
-export type EmployeeRole = 'Driver' | 'Fabricator' | 'CNG Technician' | 'Staff';
+export type EmployeeRole = 
+  | 'Managers'
+  | 'Engineers & Officers'
+  | 'Office Staff'
+  | 'Drivers & Asst. Drivers'
+  | 'Mechanics & Helpers'
+  | 'Welders, Fabricators & Helpers'
+  | 'Technician & CNG Operators'
+  | 'Interns';
 
-export interface TrainingRequirement {
-  name: string;
-  required: boolean;
-  category: 'New Joiner' | 'Refresher' | 'Additional';
-}
+export type OutsiderCategory = 'Contractors' | 'Suppliers' | 'Visitors' | 'VIP';
 
-export const TRAINING_REQUIREMENTS: Record<EmployeeRole, TrainingRequirement[]> = {
-  Driver: [
-    // New Joiner Trainings
-    { name: 'CEG QHSE Induction & Orientation', required: true, category: 'New Joiner' },
-    { name: 'Heat Stress', required: true, category: 'New Joiner' },
-    { name: 'General Safety Information & Manual Handling', required: true, category: 'New Joiner' },
-    { name: 'Basic Inspection & Reporting', required: true, category: 'New Joiner' },
-    { name: 'Gas Test & Soap Bubble Test', required: true, category: 'New Joiner' },
-    { name: 'Emergency Evacuation Plan & Gas leak Arrest', required: true, category: 'New Joiner' },
-    { name: 'Trem Card', required: true, category: 'New Joiner' },
-    { name: 'CNG MSDS', required: true, category: 'New Joiner' },
-    { name: 'Basic Tire Presentation', required: true, category: 'New Joiner' },
-    { name: 'Driving Checklist Presentation', required: true, category: 'New Joiner' },
-    { name: 'CEG Driving Policy', required: true, category: 'New Joiner' },
-    { name: '5th wheel lock safety', required: true, category: 'New Joiner' },
-    { name: 'Changeover Simulation', required: true, category: 'New Joiner' },
-    // Refresher Trainings
-    { name: 'General Safety Information', required: true, category: 'Refresher' },
+// All internal training topics from the matrix
+export const INTERNAL_TRAINING_TOPICS = [
+  'QHSE Induction & General Disciplinary Actions',
+  'General Safety information & Basic Inspection',
+  'TREM card',
+  'CNG MSDS',
+  'Basic Tires Safety',
+  'Gas Detector & Soap Test Procedure',
+  'Gas leak arrest & Emergency Evacuation',
+  'CEG Drivers Checklist',
+  'CEG Driving Policy',
+  '5th wheel safety & Practical',
+  'Changeover Simulation',
+  'Office Safety',
+  'Manual handling & Heat Stress',
+] as const;
+
+// Sessional training topics
+export const SESSIONAL_TRAINING_TOPICS = [
+  'QHSE M.S Safety Orientation',
+  'PTW System',
+  'LOTO - Lock Out Tag Out',
+  'Driver Safety Guidelines & Training awareness',
+  '10 Golden Saving Life Rules',
+  'Emergency preparedness & Response duties & Responsibilities',
+  'Defensive Driving',
+] as const;
+
+// Combined list for dropdowns
+export const ALL_TRAINING_TOPICS = [
+  ...INTERNAL_TRAINING_TOPICS,
+  ...SESSIONAL_TRAINING_TOPICS,
+  'Other',
+] as const;
+
+// Outsider-only training (only QHSE M.S Safety Orientation)
+export const OUTSIDER_TRAINING = 'QHSE M.S Safety Orientation';
+
+// Training requirements per internal role
+export const TRAINING_REQUIREMENTS: Record<EmployeeRole, string[]> = {
+  'Managers': [
+    'QHSE Induction & General Disciplinary Actions',
+    'General Safety information & Basic Inspection',
+    'CNG MSDS',
+    'Office Safety',
+    'Manual handling & Heat Stress',
   ],
-  Fabricator: [
-    // New Joiner Trainings
-    { name: 'CEG QHSE Induction & Orientation', required: true, category: 'New Joiner' },
-    { name: 'Heat Stress', required: true, category: 'New Joiner' },
-    { name: 'General Safety Information & Manual Handling', required: true, category: 'New Joiner' },
-    { name: 'Basic Inspection & Reporting', required: true, category: 'New Joiner' },
-    { name: 'Gas Test & Soap Bubble Test', required: true, category: 'New Joiner' },
-    { name: 'Emergency Evacuation Plan & Gas leak Arrest', required: true, category: 'New Joiner' },
-    { name: 'CNG MSDS', required: true, category: 'New Joiner' },
-    // Refresher Trainings
-    { name: 'General Safety Information', required: true, category: 'Refresher' },
+  'Engineers & Officers': [
+    'QHSE Induction & General Disciplinary Actions',
+    'General Safety information & Basic Inspection',
+    'CNG MSDS',
+    'Gas Detector & Soap Test Procedure',
+    'Gas leak arrest & Emergency Evacuation',
+    'Office Safety',
+    'Manual handling & Heat Stress',
   ],
-  'CNG Technician': [
-    // New Joiner Trainings
-    { name: 'CEG QHSE Induction & Orientation', required: true, category: 'New Joiner' },
-    { name: 'Heat Stress', required: true, category: 'New Joiner' },
-    { name: 'General Safety Information & Manual Handling', required: true, category: 'New Joiner' },
-    { name: 'Basic Inspection & Reporting', required: true, category: 'New Joiner' },
-    { name: 'Gas Test & Soap Bubble Test', required: true, category: 'New Joiner' },
-    { name: 'Emergency Evacuation Plan & Gas leak Arrest', required: true, category: 'New Joiner' },
-    { name: 'CNG MSDS', required: true, category: 'New Joiner' },
-    { name: 'Changeover Simulation', required: true, category: 'New Joiner' },
-    // Refresher Trainings
-    { name: 'General Safety Information', required: true, category: 'Refresher' },
+  'Office Staff': [
+    'QHSE Induction & General Disciplinary Actions',
+    'General Safety information & Basic Inspection',
+    'CNG MSDS',
+    'Office Safety',
+    'Manual handling & Heat Stress',
   ],
-  Staff: [
-    // New Joiner Trainings
-    { name: 'CEG QHSE Induction & Orientation', required: true, category: 'New Joiner' },
-    { name: 'Heat Stress', required: true, category: 'New Joiner' },
-    { name: 'General Safety Information & Manual Handling', required: true, category: 'New Joiner' },
-    { name: 'Basic Inspection & Reporting', required: true, category: 'New Joiner' },
-    { name: 'Emergency Evacuation Plan & Gas leak Arrest', required: true, category: 'New Joiner' },
-    { name: 'Office Safety Awareness', required: true, category: 'New Joiner' },
-    // Refresher Trainings
-    { name: 'General Safety Information', required: true, category: 'Refresher' },
+  'Drivers & Asst. Drivers': [
+    'QHSE Induction & General Disciplinary Actions',
+    'General Safety information & Basic Inspection',
+    'TREM card',
+    'CNG MSDS',
+    'Basic Tires Safety',
+    'Gas Detector & Soap Test Procedure',
+    'Gas leak arrest & Emergency Evacuation',
+    'CEG Drivers Checklist',
+    'CEG Driving Policy',
+    '5th wheel safety & Practical',
+    'Changeover Simulation',
+    'Manual handling & Heat Stress',
+  ],
+  'Mechanics & Helpers': [
+    'QHSE Induction & General Disciplinary Actions',
+    'General Safety information & Basic Inspection',
+    'CNG MSDS',
+    'Basic Tires Safety',
+    'Gas Detector & Soap Test Procedure',
+    'Gas leak arrest & Emergency Evacuation',
+    'Manual handling & Heat Stress',
+  ],
+  'Welders, Fabricators & Helpers': [
+    'QHSE Induction & General Disciplinary Actions',
+    'General Safety information & Basic Inspection',
+    'CNG MSDS',
+    'Gas Detector & Soap Test Procedure',
+    'Gas leak arrest & Emergency Evacuation',
+    'Manual handling & Heat Stress',
+  ],
+  'Technician & CNG Operators': [
+    'QHSE Induction & General Disciplinary Actions',
+    'General Safety information & Basic Inspection',
+    'CNG MSDS',
+    'Gas Detector & Soap Test Procedure',
+    'Gas leak arrest & Emergency Evacuation',
+    'Changeover Simulation',
+    'Manual handling & Heat Stress',
+  ],
+  'Interns': [
+    'QHSE Induction & General Disciplinary Actions',
+    'General Safety information & Basic Inspection',
+    'CNG MSDS',
+    'Office Safety',
+    'Manual handling & Heat Stress',
   ],
 };
 
-// Additional trainings for all employees
-export const ADDITIONAL_TRAININGS: TrainingRequirement[] = [
-  { name: 'Permit to Work (General, Hot, Isolation & Excavation)', required: true, category: 'Additional' },
-  { name: 'Work at Height (Ladders, Scaffolding, MEWP\'s)', required: true, category: 'Additional' },
-  { name: 'LOTO (lock out & Tag out)', required: true, category: 'Additional' },
-  { name: 'Defensive Driving', required: true, category: 'Additional' },
-  { name: 'Fire Fighting Training', required: true, category: 'Additional' },
-  { name: 'Mock Drill', required: true, category: 'Additional' },
-  { name: 'Drug & Alcohol in the workplace', required: true, category: 'Additional' },
-  { name: 'Heat Stress awareness training (Beat The Heat)', required: true, category: 'Additional' },
+// Sessional trainings required for all CEG employees
+export const CEG_SESSIONAL_TRAININGS = [
+  'PTW System',
+  'LOTO - Lock Out Tag Out',
+  'Driver Safety Guidelines & Training awareness',
+  '10 Golden Saving Life Rules',
+  'Emergency preparedness & Response duties & Responsibilities',
+  'Defensive Driving',
 ];
 
-// Helper to get all required trainings for a role
-export function getRequiredTrainings(role: EmployeeRole): TrainingRequirement[] {
-  return [...TRAINING_REQUIREMENTS[role], ...ADDITIONAL_TRAININGS];
+// Outsider requirements (only orientation)
+export const OUTSIDER_REQUIREMENTS: Record<OutsiderCategory, string[]> = {
+  'Contractors': ['QHSE M.S Safety Orientation'],
+  'Suppliers': ['QHSE M.S Safety Orientation'],
+  'Visitors': ['QHSE M.S Safety Orientation'],
+  'VIP': ['QHSE M.S Safety Orientation'],
+};
+
+// Get all required trainings for a role (internal + sessional)
+export function getRequiredTrainings(role: EmployeeRole): string[] {
+  return [...TRAINING_REQUIREMENTS[role], ...CEG_SESSIONAL_TRAININGS];
 }
 
-// Helper to detect role from position string
+// Detect role from position string
 export function detectRoleFromPosition(position: string | null): EmployeeRole | null {
   if (!position) return null;
   const pos = position.toLowerCase();
-  
-  if (pos.includes('driver')) return 'Driver';
-  if (pos.includes('fabricat')) return 'Fabricator';
-  if (pos.includes('technician') || pos.includes('cng')) return 'CNG Technician';
+
+  if (pos.includes('manager') || pos.includes('director') || pos.includes('ceo') || pos.includes('gm')) return 'Managers';
+  if (pos.includes('engineer') || pos.includes('officer') || pos.includes('supervisor') || pos.includes('hse')) return 'Engineers & Officers';
+  if (pos.includes('driver')) return 'Drivers & Asst. Drivers';
+  if (pos.includes('mechanic') || pos.includes('helper')) return 'Mechanics & Helpers';
+  if (pos.includes('welder') || pos.includes('fabricat')) return 'Welders, Fabricators & Helpers';
+  if (pos.includes('technician') || pos.includes('cng') || pos.includes('operator')) return 'Technician & CNG Operators';
+  if (pos.includes('intern') || pos.includes('trainee')) return 'Interns';
   if (pos.includes('staff') || pos.includes('office') || pos.includes('admin') || 
-      pos.includes('manager') || pos.includes('engineer') || pos.includes('accountant') ||
-      pos.includes('hr') || pos.includes('hse')) return 'Staff';
-  
+      pos.includes('accountant') || pos.includes('hr') || pos.includes('clerk') ||
+      pos.includes('secretary') || pos.includes('receptionist')) return 'Office Staff';
+
   return null;
 }
 
-// Check if company is Cloud Energi (CEG)
+// Classify a person as employee or outsider based on their training types
+// If they have any internal training topics, they're an employee
+// If they only have outsider trainings (QHSE M.S Safety Orientation), they're outsiders
+export function isEmployee(trainingTypes: string[]): boolean {
+  const internalTopics = new Set([
+    ...INTERNAL_TRAINING_TOPICS,
+    ...CEG_SESSIONAL_TRAININGS.filter(t => t !== OUTSIDER_TRAINING),
+  ]);
+  
+  return trainingTypes.some(t => {
+    const tLower = t.toLowerCase();
+    return Array.from(internalTopics).some(topic => 
+      tLower.includes(topic.toLowerCase().substring(0, 15)) || 
+      topic.toLowerCase().includes(tLower.substring(0, 15))
+    );
+  });
+}
+
+// Check if a training type is an outsider-only training
+export function isOutsiderTraining(trainingType: string): boolean {
+  return trainingType.toLowerCase().includes('orientation') || 
+         trainingType.toLowerCase() === OUTSIDER_TRAINING.toLowerCase();
+}
+
+// Legacy compatibility
 export function isCloudEnergiEmployee(company: string): boolean {
   const comp = company.toLowerCase();
   return comp.includes('cloud energi') || 
@@ -106,11 +198,4 @@ export function isCloudEnergiEmployee(company: string): boolean {
          comp.includes('ceg') ||
          comp === 'cloudenergy' ||
          comp === 'cloudenergi';
-}
-
-// Check if person is a visitor (based on purpose of visit)
-export function isVisitor(remarks: string | null): boolean {
-  if (!remarks) return false;
-  const r = remarks.toLowerCase();
-  return r.includes('visit') || r.includes('contractor') || r.includes('visitor');
 }

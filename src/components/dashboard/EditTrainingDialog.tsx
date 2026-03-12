@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Database } from '@/integrations/supabase/types';
 import { Constants } from '@/integrations/supabase/types';
+import { ALL_TRAINING_TOPICS } from '@/data/trainingRequirements';
+import type { Database } from '@/integrations/supabase/types';
 
 type Training = Database['public']['Tables']['trainings']['Row'];
 type TrainingUpdate = Database['public']['Tables']['trainings']['Update'];
@@ -51,6 +52,11 @@ export function EditTrainingDialog({ training, open, onOpenChange, onUpdate }: E
 
   if (!training) return null;
 
+  // Include current training type in options if not in list
+  const trainingTypeOptions = ALL_TRAINING_TOPICS.includes(form.training_type as any)
+    ? ALL_TRAINING_TOPICS
+    : [form.training_type as string, ...ALL_TRAINING_TOPICS];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -85,14 +91,14 @@ export function EditTrainingDialog({ training, open, onOpenChange, onUpdate }: E
           <div className="space-y-2">
             <Label htmlFor="training_type">Training Type</Label>
             <Select
-              value={form.training_type}
-              onValueChange={(value) => setForm({ ...form, training_type: value as any })}
+              value={form.training_type as string}
+              onValueChange={(value) => setForm({ ...form, training_type: value })}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Constants.public.Enums.training_type.map((type) => (
+                {trainingTypeOptions.map((type) => (
                   <SelectItem key={type} value={type}>{type}</SelectItem>
                 ))}
               </SelectContent>

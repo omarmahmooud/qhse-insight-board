@@ -4,28 +4,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Database } from '@/integrations/supabase/types';
 import { Constants } from '@/integrations/supabase/types';
-
-type TrainingInsert = Database['public']['Tables']['trainings']['Insert'];
+import { ALL_TRAINING_TOPICS } from '@/data/trainingRequirements';
 
 interface AddTrainingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (training: TrainingInsert) => Promise<boolean>;
+  onAdd: (training: any) => Promise<boolean>;
 }
 
 export function AddTrainingDialog({ open, onOpenChange, onAdd }: AddTrainingDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState<Partial<TrainingInsert>>({
+  const [form, setForm] = useState({
     trainee_name: '',
     company: '',
     position: '',
-    training_type: 'HSE Induction',
+    training_type: 'QHSE Induction & General Disciplinary Actions',
     training_date: new Date().toISOString().split('T')[0],
     instructor: '',
     location: '',
-    status: 'Completed',
+    status: 'Completed' as string,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,7 +31,7 @@ export function AddTrainingDialog({ open, onOpenChange, onAdd }: AddTrainingDial
     if (!form.trainee_name || !form.company || !form.training_date) return;
 
     setLoading(true);
-    const success = await onAdd(form as TrainingInsert);
+    const success = await onAdd(form);
     setLoading(false);
 
     if (success) {
@@ -42,7 +40,7 @@ export function AddTrainingDialog({ open, onOpenChange, onAdd }: AddTrainingDial
         trainee_name: '',
         company: '',
         position: '',
-        training_type: 'HSE Induction',
+        training_type: 'QHSE Induction & General Disciplinary Actions',
         training_date: new Date().toISOString().split('T')[0],
         instructor: '',
         location: '',
@@ -80,7 +78,7 @@ export function AddTrainingDialog({ open, onOpenChange, onAdd }: AddTrainingDial
             <Label htmlFor="position">Position</Label>
             <Input
               id="position"
-              value={form.position || ''}
+              value={form.position}
               onChange={(e) => setForm({ ...form, position: e.target.value })}
             />
           </div>
@@ -88,13 +86,13 @@ export function AddTrainingDialog({ open, onOpenChange, onAdd }: AddTrainingDial
             <Label htmlFor="training_type">Training Type</Label>
             <Select
               value={form.training_type}
-              onValueChange={(value) => setForm({ ...form, training_type: value as any })}
+              onValueChange={(value) => setForm({ ...form, training_type: value })}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Constants.public.Enums.training_type.map((type) => (
+                {ALL_TRAINING_TOPICS.map((type) => (
                   <SelectItem key={type} value={type}>{type}</SelectItem>
                 ))}
               </SelectContent>
@@ -114,7 +112,7 @@ export function AddTrainingDialog({ open, onOpenChange, onAdd }: AddTrainingDial
             <Label htmlFor="instructor">Instructor</Label>
             <Input
               id="instructor"
-              value={form.instructor || ''}
+              value={form.instructor}
               onChange={(e) => setForm({ ...form, instructor: e.target.value })}
             />
           </div>
@@ -122,7 +120,7 @@ export function AddTrainingDialog({ open, onOpenChange, onAdd }: AddTrainingDial
             <Label htmlFor="status">Status</Label>
             <Select
               value={form.status}
-              onValueChange={(value) => setForm({ ...form, status: value as any })}
+              onValueChange={(value) => setForm({ ...form, status: value })}
             >
               <SelectTrigger>
                 <SelectValue />
